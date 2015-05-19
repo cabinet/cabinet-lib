@@ -45,6 +45,35 @@ History of changes over signing?
 3) C added E and signed it
 2) I check signatures back to the point where I signed it and should match.
 
+# Access control 2
+
+    Password store tree
+    ├── .auth/
+    │   ├── admin
+    │   ├── admin-user-A.asc
+    │   ├── admin-user-B.asc
+    │   └── recipients
+    ├── Personal
+    │   ├── my-gmail-account
+    │   └── bank-information
+    ├── my-company
+    │   ├── .auth/
+    │   │   ├── admin
+    │   │   ├── admin-user-A.asc
+    │   │   ├── admin-user-C.asc
+    │   │   └── recipients
+    │   ├── business-email-account
+    │   └── alarm-code
+    ├── some-site
+    ├── some-other-site
+    └── test-blah
+
+Each .auth/recipients file has the fingerprints for the users for which the
+passwords will be encrypted. If there is no such file the parent's one will be
+used. The recipients file will be signed by the group admin.
+
+The admin file contains the fingerprint for the user who is the group admin and
+the only one allowed to edit the recipients file.
 
 # File names hiding
 
@@ -58,6 +87,13 @@ original file name and use some random no significative name as a file name.
 The file name is stored by default when you cipher a file with gpg. We can get the original filename as follows:
 
     gpg -q --list-packets the_encrypted_file.asc 2>&1 | grep --color=never -o 'name=".*"'
+
+The immediate problem is that we can only store the file name itself and not
+the whole path. So as a first attempt we could leave the folders as clear text
+and just hide the filenames.
+
+Other option could be to store a `.dirname` file in each folder which states
+the real name for that folder.
 
 
 ## Random file names
@@ -83,6 +119,10 @@ The password store may look like this:
 
 
 Q: how do we store the mapping in a way that the right people can access it?
+
+Maybe we can use a specific file to map 'real name' -> 'random name' along with
+each `.gpg-recipients` file, encrypted with all the people listed on
+`.gpg-recipients`.
 
 
 # Project name
