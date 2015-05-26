@@ -40,10 +40,10 @@ Q: how do we prevent some person to add itself to that list?
 Maybe file signing for each person allowed to access?
 History of changes over signing?
 
-1) persons allowed: me, A, B ... signed by any of the three
-2) A added C and signed it
-3) C added E and signed it
-2) I check signatures back to the point where I signed it and should match.
+1. persons allowed: me, A, B ... signed by any of the three
+1. A added C and signed it
+1. C added E and signed it
+1. I check signatures back to the point where I signed it and should match.
 
 # Access control 2
 
