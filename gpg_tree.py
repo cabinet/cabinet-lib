@@ -47,7 +47,7 @@ class SimpleGPG(object):
 
 
 class GPGTree(object):
-    BASE_PATH = './gpg.tree/test-files-tree/'
+    BASE_PATH = './tmp/gpg.tree/test-files-tree/'
 
     def __init__(self):
         self._gpg = gnupg.GPG()

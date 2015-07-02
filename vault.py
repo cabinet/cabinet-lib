@@ -7,8 +7,7 @@ from getpass import getpass
 
 import gnupg
 
-PASSWORD_VAULT = './password.vault/'
-GPG_RECIPIENTS = 'gpg-recipients'
+from random_tree import RandomTree
 
 
 def mkdir_p(path):
@@ -35,20 +34,25 @@ class Vault(object):
     Password manager class prototype.
     """
 
-    def __init__(self):
-        mkdir_p(PASSWORD_VAULT)
+    def __init__(self, root, private_key_password):
+        self._base_path = root
+        self._names_mapping = os.path.join(root, '.auth', 'mappings.json')
+        self._recipients_file = os.path.join(root, '.auth', 'recipients')
+
+        mkdir_p(self._base_path)
+
+        self._mapper = RandomTree(self._names_mapping)
 
         gpg_home = os.path.join(os.path.expanduser('~/.gnupg/'))
         self._gpg = gnupg.GPG(homedir=gpg_home)
-        self._key = getpass('Enter the password to unlock your private key: ')
+        self._key = private_key_password
 
     def _get_recipients(self):
         """
         :return: a list of recipients to use to encrypt the data
         :rtype: list
         """
-        recp_file = os.path.join(PASSWORD_VAULT, GPG_RECIPIENTS)
-        with open(recp_file) as f:
+        with open(self._recipients_file) as f:
             recp = f.read()
 
         if recp is not None:
@@ -105,8 +109,13 @@ class Vault(object):
 
     def ls(self):
         """List passwords."""
+        from pprint import pprint
+        print "Nodes: ",
+        pprint(self._mapper.list_nodes())
+
+        print "Tree on disk:"
         import subprocess
-        out = subprocess.check_output(['tree', PASSWORD_VAULT])
+        out = subprocess.check_output(['tree', self._base_path])
         print out
 
     def get(self, name):
@@ -116,7 +125,9 @@ class Vault(object):
         :param name: the name of the data contents that you want to retrieve.
         :type name: str
         """
-        path = PASSWORD_VAULT + name
+        random_name = self._mapper.get_node(name)
+
+        path = self._base_path + random_name
         with open(path, 'r') as f:
             e_data = f.read()
 
@@ -135,14 +146,16 @@ class Vault(object):
                           exists.
         :type overwrite: bool
         """
-        e_data = self._cipher(data)
-        path = PASSWORD_VAULT + name
+        random_name = self._mapper.add_node(name)
 
-        folder = os.path.dirname(path)
-        mkdir_p(folder)
+        e_data = self._cipher(data)
+        path = self._base_path + random_name
 
         if os.path.isfile(path) and not overwrite:
             raise IOError("File already exists")
+
+        folder = os.path.dirname(path)
+        mkdir_p(folder)
 
         with open(path, 'w') as f:
             f.write(e_data)
@@ -162,15 +175,24 @@ class Vault(object):
 
 
 def main():
-    m = Vault()
+    pkey = getpass('Enter the password to unlock your private key: ')
+    v = Vault(root='./tmp/password.vault/', private_key_password=pkey)
 
-    m.add('test', "Hellooo worrrrlddd!!", overwrite=True)
-    m.add('ivan/gmail', "my super secret password", overwrite=True)
+    v.add('test', "Hellooo worrrrlddd!!", overwrite=True)
+    v.add('ivan/gmail', "my super secret password", overwrite=True)
+    v.add('ivan/bank-password', "1234", overwrite=True)
+    v.add('my-company/alarm', "123456", overwrite=True)
+    v.add('my-company/contact-mail',
+          "mail: contact@my-company.com - pass: hard to kill",
+          overwrite=True)
+    # this produces an error, handle it
+    # v.add('test/asdf', "some sensitive information", overwrite=True)
 
-    print 'test:', m.get('test')
-    print 'ivan/gmail:', m.get('ivan/gmail')
+    print '>> get("test"):', v.get('test')
+    print '>> get("ivan/gmail"):', v.get('ivan/gmail')
 
-    m.ls()
+    print ">> ls()"
+    v.ls()
 
 if __name__ == '__main__':
     main()
