@@ -35,6 +35,16 @@ class Vault(object):
     """
 
     def __init__(self, root, private_key_password):
+        """
+        Initialize the password vault using the `root` base path to store the
+        data and the `private_key_password` to unlock the private key.
+
+        :param root: the path to store/read data
+        :type root: str
+        :param private_key_password: password to unlock the secret key
+        :type private_key_password: str
+        """
+        # TODO: default `root` to ~/.config/cabinet/vault/ ?
         self._base_path = root
         self._names_mapping = os.path.join(root, '.auth', 'mappings.json')
         self._recipients_file = os.path.join(root, '.auth', 'recipients')
@@ -43,6 +53,8 @@ class Vault(object):
 
         self._mapper = RandomTree(self._names_mapping)
 
+        # TODO: use special dir to keep password manager specific keys?
+        # e.g. ~/.config/cabinet/keys/
         gpg_home = os.path.join(os.path.expanduser('~/.gnupg/'))
         self._gpg = gnupg.GPG(homedir=gpg_home)
         self._key = private_key_password
@@ -117,6 +129,9 @@ class Vault(object):
         import subprocess
         out = subprocess.check_output(['tree', self._base_path])
         print out
+
+    def get_node_list(self):
+        return self._mapper.list_nodes()
 
     def get(self, name):
         """
