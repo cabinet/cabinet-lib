@@ -9,7 +9,7 @@ from flask_restful import Api, Resource, reqparse  # , abort
 # this is needed to run the api server on the same host as the web page
 from flask_cors import CORS
 
-from vault import Vault
+from cabinet import Vault
 
 
 app = Flask(__name__)
