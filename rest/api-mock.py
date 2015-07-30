@@ -91,8 +91,100 @@ class Nodes(Resource):
         return {'name': name, 'data': VAULT[name]}, 201
 
 
+class User(Resource):
+    """ Resource to list (get) and add (post) users into the vault. """
+
+    def get(self, user_id):
+        """
+        Get the list of nodes in the vault.
+        """
+        user = {
+            # random fp for test purposes
+            'fingerprint': ("1A5B 048A 5250 61B4 BCE8  "
+                            "4521 0CFA 7C52 A82D 14DF"),
+            'name': 'Demo User',
+            'email': 'demo.user@test.com'
+        }
+
+        if user_id == 'me':
+            return user
+
+
+class Users(Resource):
+    """ Resource to list (get) and add (post) users into the vault. """
+
+    def __init__(self):
+        self._parser = reqparse.RequestParser()
+        self._parser.add_argument('name', type=str)
+        self._parser.add_argument('email', type=str)
+        self._parser.add_argument('password', type=str)
+
+    def get(self):
+        """
+        Get the list of nodes in the vault.
+        """
+        pass
+
+    def post(self):
+        """
+        Add a new user to the vault.
+        Return the fingerprint for the new created key pair.
+        """
+        args = self._parser.parse_args()
+        name = args['name']
+        email = args['email']
+        password = args['password']
+
+        if not name or not email or not password:
+            # abort(301, message="Missing data")
+            return "Missing data", 301
+
+        user = {
+            # random fp for test purposes
+            'fingerprint': ("1A5B 048A 5250 61B4 BCE8  "
+                            "4521 0CFA 7C52 A82D 14DF"),
+            'name': name,
+            'email': email
+        }
+
+        return user, 201
+
+
+class Vault(Resource):
+    """ Resource to list (get) and add (post) users into the vault. """
+
+    def __init__(self):
+        self._locked = True
+        self._parser = reqparse.RequestParser()
+        self._parser.add_argument('password', type=str)
+
+    def _unlock(self):
+        args = self._parser.parse_args()
+        password = args['password']
+
+        if not password:
+            # abort(301, message="Missing data")
+            return "Missing data", 301
+
+        # random token
+        return {"token": "eyJhbGciOiIz1Ni.IsImIMMNYOYNwaWF0IjoxMzg1Nj..."}, 200
+
+    def post(self, action):
+        """
+        Do some action for the vault
+        """
+        if action == 'unlock':
+            return self._unlock()
+
+# TODO: send token
+api.add_resource(Vault, '/vault/<action>')
+
+# TODO: require token
 api.add_resource(Nodes, '/vault/nodes')
 api.add_resource(Node, '/vault/nodes/<node_id>')
+
+api.add_resource(Users, '/vault/users')
+api.add_resource(User, '/vault/users/<user_id>')
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=int("8000"), debug=True)
