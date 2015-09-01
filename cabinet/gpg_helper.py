@@ -19,6 +19,12 @@ DEFAULT_PARAMS = {
 
 class GPGHelper(object):
     def __init__(self, homedir):
+        """
+        Initialize the helpero with the specified gnupg home.
+
+        :param homedir: the gnupg home to be used.
+        :type homedir: str
+        """
         self._gpg = gnupg.GPG(homedir=homedir)
 
     def _generate_batch(self, name, email, password):
@@ -33,6 +39,14 @@ class GPGHelper(object):
         return batch
 
     def get_key(self, fingerprint):
+        """
+        Return a key that has the given fingerprint.
+
+        :param fingerprint: the fingerprint for the key we want.
+        :type fingerprint: str
+
+        :rtype: dict
+        """
         # Using '--fingerprint' twice will display subkey fingerprints too:
         # gpg.options = ['--fingerprint', '--fingerprint']
         keylist = self._gpg.list_keys(secret=True)
@@ -42,6 +56,9 @@ class GPGHelper(object):
                 return key
 
     def display_keys(self):
+        """
+        Display keys in the current keyring.
+        """
         # Using '--fingerprint' twice will display subkey fingerprints too:
         self._gpg.options = ['--fingerprint', '--fingerprint']
         keylist = self._gpg.list_keys(secret=True)
@@ -49,6 +66,7 @@ class GPGHelper(object):
         # `result` is a `gnupg._parsers.ListKeys`, which is list-like, so
         # iterate over all the keys and display their info:
         for gpgkey in keylist:
+            print '-'*10
             for k, v in gpgkey.items():
                 print("%s: %s" % (k.capitalize(), v))
 
@@ -56,6 +74,18 @@ class GPGHelper(object):
         print keylist
 
     def create_key(self, name, email, password):
+        """
+        Create a gnupg key pair (private and public).
+
+        :param name: The real name of the user identity.
+        :type name: str
+        :param email: An email address for the user.
+        :type email: str
+        :param password: The passphrase to use to encrypt the private key.
+
+        :return: the new key's fingerprint.
+        :rtype: str
+        """
         batch = self._generate_batch(name, email, password)
         key = self._gpg.gen_key(batch)
         print dir(key)
