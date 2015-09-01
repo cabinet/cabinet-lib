@@ -6,6 +6,9 @@ public/private keys.
 
 This project was inspired in http://www.passwordstore.org/
 
+Note that this is in early stages of development so is not recommended to use
+just yet.
+
 
 # Vault structure
 
