@@ -22,8 +22,7 @@ parser.add_argument('data', type=str)
 
 # (module level) global instance to access from Node and Nodes
 _pkey = getpass('Enter the password to unlock your private key: ')
-_vault = Vault(root='./tmp/password.vault/',
-               private_key_password=_pkey)
+_vault = Vault(private_key_password=_pkey)
 
 
 class Node(Resource):
@@ -70,14 +69,7 @@ class Nodes(Resource):
         """
         Get the list of nodes in the vault.
         """
-        nodes = _vault.get_node_list()
-        return nodes  # jsonify this?
-        # return [
-        #     {'name': 'my@email.com', 'data': 'my secret password'},
-        #     {'name': 'test/yahoo-mail', 'data': 'email credentials here'},
-        #     {'name': 'test/family-safe-code', 'data': '0000-1234'},
-        #     {'name': 'company/alarm-code', 'data': '123456'},
-        # ]
+        return _vault.get_tree()
 
     def post(self):
         """
