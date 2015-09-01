@@ -5,7 +5,9 @@ import os
 
 import gnupg
 
+from .gpg_helper import GPGHelper
 from .random_tree import RandomTree
+from .utils import TreeList
 
 
 def mkdir_p(path):
@@ -32,28 +34,31 @@ class Vault(object):
     Password manager class prototype.
     """
 
-    def __init__(self, root, private_key_password):
+    def __init__(self, private_key_password, root=None):
         """
         Initialize the password vault using the `root` base path to store the
         data and the `private_key_password` to unlock the private key.
 
-        :param root: the path to store/read data
-        :type root: str
         :param private_key_password: password to unlock the secret key
         :type private_key_password: str
+        :param root: the path to store/read data
+        :type root: str
         """
-        # TODO: default `root` to ~/.config/cabinet/vault/ ?
-        self._base_path = root
-        self._names_mapping = os.path.join(root, '.auth', 'mappings.json')
-        self._recipients_file = os.path.join(root, '.auth', 'recipients')
+        if root is None:
+            root = os.path.expanduser('~/.config/cabinet/')
 
-        mkdir_p(self._base_path)
+        self._root_path = root
+
+        self._base_path = os.path.join(root, 'vault')
+        auth_path = os.path.join(self._base_path, '.auth')
+        mkdir_p(auth_path)
+
+        self._names_mapping = os.path.join(auth_path, 'mappings.json')
+        self._recipients_file = os.path.join(auth_path, 'recipients')
 
         self._mapper = RandomTree(self._names_mapping)
 
-        # TODO: use special dir to keep password manager specific keys?
-        # e.g. ~/.config/cabinet/keys/
-        gpg_home = os.path.join(os.path.expanduser('~/.gnupg/'))
+        gpg_home = os.path.join(root, 'gnupg')
         self._gpg = gnupg.GPG(homedir=gpg_home)
         self._key = private_key_password
 
@@ -62,8 +67,13 @@ class Vault(object):
         :return: a list of recipients to use to encrypt the data
         :rtype: list
         """
-        with open(self._recipients_file) as f:
-            recp = f.read()
+        try:
+            with open(self._recipients_file) as f:
+                recp = f.read()
+        except:
+            keylist = self._gpg.list_keys(secret=True)
+            print keylist
+            raise
 
         if recp is not None:
             recipients = recp.splitlines()
@@ -110,26 +120,73 @@ class Vault(object):
 
         return result.data
 
-    def init(self, subpath=None, new_gpg_id=None):
+    def init(self):
         """
-        Initialize new password storage and use gpg-id for encryption.
-        Selectively reencrypt existing passwords using new gpg-id.
+        Initialize new password storage and use fingerprint for encryption.
+
+        fingerprint -> admin's fp
         """
-        pass
+        # create path structure
+        auth_path = os.path.join(self._root_path, 'vault', '.auth')
+        gpg_home = os.path.join(self._root_path, 'gnupg')
+        mkdir_p(auth_path)
+        mkdir_p(gpg_home)
 
-    def ls(self):
-        """List passwords."""
-        from pprint import pprint
-        print "Nodes: ",
-        pprint(self._mapper.list_nodes())
+    def create_key(self, user, email, password):
+        root = os.path.expanduser('~/.config/cabinet/')
+        gpg_home = os.path.join(root, 'gnupg')
 
-        print "Tree on disk:"
-        import subprocess
-        out = subprocess.check_output(['tree', self._base_path])
-        print out
+        g = GPGHelper(gpg_home)
+        fingerprint = g.create_key(user, email, password)
+        # g.display_keys()
+        # g.get_key()
+        return fingerprint
+
+    def get_my_fingerprint(self):
+        """
+        Return the current user's fingerprint or None if there is no private
+        key.
+
+        :rtype: str or None
+        """
+        root = os.path.expanduser('~/.config/cabinet/')
+        gpg_home = os.path.join(root, 'gnupg')
+        g = GPGHelper(gpg_home)
+
+        keylist = g.get_keys(secret=True)
+
+        if not keylist:
+            return None
+
+        # it CAN be more but it SHOULD be just one private key
+        if len(keylist) > 1:
+            print keylist
+            raise Exception("There is more than one private key.")
+
+        return keylist[0]['fingerprint']
+
+    def get_key(self, fingerprint):
+        root = os.path.expanduser('~/.config/cabinet/')
+        gpg_home = os.path.join(root, 'gnupg')
+        g = GPGHelper(gpg_home)
+        return g.get_key(fingerprint)
+
+    def set_admin(self, fingerprint, overwrite=False):
+        # create admin's key pair
+        if os.path.isfile(self._recipients_file) and not overwrite:
+            raise IOError("File already exists")
+
+        with open(self._recipients_file, 'w') as r:
+            r.write(fingerprint)
 
     def get_node_list(self):
         return self._mapper.list_nodes()
+
+    def get_tree(self):
+        nodes = self.get_node_list()
+        nodes.sort()
+        t = TreeList(nodes)
+        return t.get_tree()
 
     def get(self, name):
         """
@@ -140,7 +197,7 @@ class Vault(object):
         """
         random_name = self._mapper.get_node(name)
 
-        path = self._base_path + random_name
+        path = os.path.join(self._base_path, random_name)
         with open(path, 'r') as f:
             e_data = f.read()
 
@@ -162,7 +219,7 @@ class Vault(object):
         random_name = self._mapper.add_node(name)
 
         e_data = self._cipher(data)
-        path = self._base_path + random_name
+        path = os.path.join(self._base_path, random_name)
 
         if os.path.isfile(path) and not overwrite:
             raise IOError("File already exists")
