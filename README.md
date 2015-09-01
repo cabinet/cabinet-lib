@@ -55,3 +55,18 @@ mapping between each real file name and a random generated one.
 To store the mappings in a way that the right people can access it we use a
 specific file to map 'real name' -> 'random name' on each `.auth/` folder. This
 file is encrypted for each person in the `recipients` file
+
+
+## Storage
+
+The vault is stored on `~/.config/cabinet/vault/`, this folder will be stored on
+a git repo and a wrapper will be created to automate git workflow. Combining
+git with file-level password storage allows a group of people to work over a
+vault of passwords without facing edit/sync conflicts.
+
+
+# Keys
+
+Cabinet will use a separate set of keys for encrypting, not the system's gnupg ones.
+
+Keys are stored on `~/.config/cabinet/gnupg/`.
