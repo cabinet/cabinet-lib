@@ -20,7 +20,7 @@ DEFAULT_PARAMS = {
 class GPGHelper(object):
     def __init__(self, homedir):
         """
-        Initialize the helpero with the specified gnupg home.
+        Initialize the helper with the specified gnupg home.
 
         :param homedir: the gnupg home to be used.
         :type homedir: str
@@ -54,6 +54,14 @@ class GPGHelper(object):
         for key in keylist:
             if key['fingerprint'] == fingerprint:
                 return key
+
+    def get_keys(self, secret=False):
+        """
+        Return the list of keys in the current keyring.
+
+        :rtype: list
+        """
+        return self._gpg.list_keys(secret=secret)
 
     def display_keys(self):
         """
