@@ -1,0 +1,113 @@
+Library API design
+==================
+
+Node management
+---------------
+
+- add
+- get
+- get_node_list
+- get_tree
+- move
+- remove
+
+
+Users / permissions
+-------------------
+
+- create_key
+- get_key
+- get_my_fingerprint
+- set_admin
+
+
+Misc
+----
+
+- init
+
+
+---------
+
+app usage:
+
+- list nodes
+list all the nodes which the current user has access to,
+some folders may be empty,
+the folder he does not have access to will be listed as None instead of empty
+
+- add node
+this takes a node name and optionally a path
+
+- create group
+
+
+---------
+app layers
+
+ui
+random-names mapper
+encryption
+
+
+get:
+- real name -> random name -> decrypt file -> return
+
+add:
+- realname -> random name -> encrypt file -> save
+
+
+* random tree mappings.json is not encrypted right now.
+
+Given a name to get/save, bubble up the path until a .auth folder is found.
+That way we can have multiple permissions level.
+To reach the file we need to use intermediary mappings in order to access the
+right path.
+To check whether the user has access or not we can check the .auth/recipients
+file bubbling up from the destination file
+
+example:
+my-section/project-X/database-credentials
+zl-frpgvba/cebwrpg-K/qngnonfr-perqragvnyf
+
+Vault/
+.auth/mappings.json
+zl-frpgvba/
+    cebwrpg-K/
+        .auth/mappings.json
+        qngnonfr-perqragvnyf
+
+
+.auth/mappings.json
+q: my-section/project-X/database-credentials
+r: None
+
+q: my-section/project-X
+r: zl-frpgvba/cebwrpg-K/
+
+/my-section/project-X/.auth/mappings.json
+q: database-credentials
+r: qngnonfr-perqragvnyf
+
+--------------------
+maybe
+on start: get tree
+get should be trivial
+add need to find proper .auth to use
+
+---------
+
+NEW DESIGN!
+
+* do not wrap gnupg, use nacl
+- this app is to ease of use and gpg is not widely used on the app's target users
+
+* use labels instead of folders - maybe tags plus folders on the future
+- how to use groups for permissions?
+
+--------------------
+Idea:
+compromise tree:
+an admin can get a list/tree on all the compromised secrets given a person.
+e.g.: a user password is compromised and cabinet should list all the secrets he
+has access and maybe the ones he had access as well.

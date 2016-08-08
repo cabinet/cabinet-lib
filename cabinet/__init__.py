@@ -1,3 +1,3 @@
-from .vault import Vault
+from .cabinet import Cabinet
 
-__all__ = ['Vault']
+__all__ = ['Cabinet']

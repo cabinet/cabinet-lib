@@ -56,4 +56,7 @@ docs/_build/
 # PyBuilder
 target/
 
-password.vault
+pyenv
+
+# test data paths
+test.data

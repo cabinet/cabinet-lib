@@ -1,109 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import nacl.utils
 
-"""
-BUG: Be careful,
+from nacl.secret import SecretBox
 
-nodes = ['test/asdf', 'test']
-print TreeList(nodes).get_tree()
-
-{
-    'test': null
-}
-
-but,
-
-nodes = ['test', 'test/asdf']
-print TreeList(nodes).get_tree()
-
-{
-    'test': {
-        'asdf': null
-    }
-}
-
-as a workaround, sorting the node list seems to 'fix' it.
-"""
+from argon2 import hash_password_raw
 
 
-class TreeList(object):
-    """
-    Tree (dict) and list representation of nodes.
-    """
-    def __init__(self, items=None):
-        """
-        :param items: the nodes to initialize the tree
-        :type items: list
-        """
-        if items is None:
-            self._node_list = []
-        else:
-            self._node_list = items
+class CryptoHelper:
+    def _fix_salt(self, salt):
+        # if salt is too short, lenghten it
+        while len(salt) < 8:
+            salt = salt * 2
 
-    def _list_to_tree(self, nodes):
-        base_tree = tree = {}
+        # salt needs to be bytes
+        return bytes(salt, 'utf-8')
 
-        for n in nodes:
-            parts = n.split('/')
-            for i in parts:
-                if i == parts[-1]:
-                    tree[i] = None
-                else:
-                    if tree.get(i) is None:
-                        tree[i] = {}
-                    tree = tree[i]
+    def encrypt(self, data, password, salt):
+        salt = self._fix_salt(salt)
+        key = hash_password_raw(password, hash_len=32, salt=salt)
+        box = SecretBox(key)
+        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+        encrypted_data = box.encrypt(data, nonce,
+                                     encoder=nacl.encoding.Base64Encoder)
 
-            tree = base_tree
+        return encrypted_data
 
-        return tree
+    def decrypt(self, data, password, salt):
+        salt = self._fix_salt(salt)
+        key = hash_password_raw(password, hash_len=32, salt=salt)
+        box = SecretBox(key)
+        data = box.decrypt(data, encoder=nacl.encoding.Base64Encoder)
 
-    def _tree_to_list(self, root):
-        l = []
-        print root
-        for n in root.keys():
-            if root[n] is None:
-                l.append(n)
-            else:
-                for i in self._tree_to_list(root[n]):
-                    item = n + '/' + i
-                    l.append(item)
-
-        return l
-
-    def get_tree(self):
-        return self._list_to_tree(self._node_list)
-
-    def get_list(self):
-        return self._node_list
-
-    def get_from_tree(self, key):
-        """
-        None -> ok
-        exception -> not ok
-        """
-        value = self.get_tree()
-
-        for n in key.split('/'):
-            value = value[n]
-
-        return value
-
-if __name__ == "__main__":
-    nodes = [
-        "sample-item",
-        "demo-stuff",
-        "test/yahoo-mail",
-        "test/family-safe-code",
-        "my-company/alarm-code",
-        "my-company/admin-mail",
-        "my-company/mails/admin",
-        "my-company/mails/userA",
-    ]
-
-    my_tree = TreeList(nodes)
-
-    import pprint
-    pprint.pprint(my_tree.get_tree())
-    pprint.pprint(my_tree.get_list())
-    print my_tree.get_from_tree('my-company/alarm-code')
+        return data

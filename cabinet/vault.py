@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import errno
+import json
 import os
 
-import gnupg
-
-from .gpg_helper import GPGHelper
-from .random_tree import RandomTree
-from .utils import TreeList
+from cabinet.utils import CryptoHelper
 
 
 def mkdir_p(path):
@@ -31,214 +28,109 @@ def mkdir_p(path):
 
 class Vault(object):
     """
-    Password manager class prototype.
+    Safe data vault representation
     """
 
-    def __init__(self, private_key_password, root=None):
-        """
-        Initialize the password vault using the `root` base path to store the
-        data and the `private_key_password` to unlock the private key.
+    def __init__(self, path):
+        self._base_path = path
+        self._tags = {}
+        self._names = {}
 
-        :param private_key_password: password to unlock the secret key
-        :type private_key_password: str
-        :param root: the path to store/read data
-        :type root: str
-        """
-        if root is None:
-            root = os.path.expanduser('~/.config/cabinet/')
+        metadata_path = os.path.join(self._base_path, 'metadata')
+        data_path = os.path.join(self._base_path, 'data')
+        mkdir_p(metadata_path)
+        mkdir_p(data_path)
 
-        self._root_path = root
+    def add(self, item):
+        name = item['name']
+        metadata = item
+        content = item['content']
+        del item['content']
 
-        self._base_path = os.path.join(root, 'vault')
-        auth_path = os.path.join(self._base_path, '.auth')
-        mkdir_p(auth_path)
+        self._names[name] = metadata
+        self._tags[name] = metadata['tags']
 
-        self._names_mapping = os.path.join(auth_path, 'mappings.json')
-        self._recipients_file = os.path.join(auth_path, 'recipients')
+        from uuid import uuid4
+        fname = uuid4().hex
+        metadata['hashname'] = fname
 
-        self._mapper = RandomTree(self._names_mapping)
+        fname = uuid4().hex
+        metadata_path = os.path.join(self._base_path, 'metadata')
+        fname = os.path.join(metadata_path, fname)
+        self._file_write(fname, metadata)
 
-        gpg_home = os.path.join(root, 'gnupg')
-        self._gpg = gnupg.GPG(homedir=gpg_home)
-        self._key = private_key_password
-
-    def _get_recipients(self):
-        """
-        :return: a list of recipients to use to encrypt the data
-        :rtype: list
-        """
-        try:
-            with open(self._recipients_file) as f:
-                recp = f.read()
-        except:
-            keylist = self._gpg.list_keys(secret=True)
-            print keylist
-            raise
-
-        if recp is not None:
-            recipients = recp.splitlines()
-
-        return recipients
-
-    def _cipher(self, data, recipients=None):
-        """
-        Encrypt the given data for the given recipients.
-
-        :param data: the data to encrypt
-        :type data: str
-        :param recipients: a list of recipients to use to encrypt the data
-        :type recipients: list
-
-        :return: the encrypted data data
-        :rtype: str
-        """
-        if recipients is None:
-            recipients = self._get_recipients()
-
-        result = self._gpg.encrypt(data, *recipients)
-
-        if not result.ok:
-            print "Error:", result.stderr
-            # raise Exception
-
-        return result.data
-
-    def _decipher(self, data):
-        """
-        Decypher the given data using the private key of the current user.
-
-        :param data: the data to decrypt
-        :type data: str
-
-        :return: the decrypted data
-        :rtype: str
-        """
-        result = self._gpg.decrypt(data, passphrase=self._key)
-
-        if not result.ok:
-            print "Error:", result.stderr
-
-        return result.data
-
-    def init(self):
-        """
-        Initialize new password storage and use fingerprint for encryption.
-
-        fingerprint -> admin's fp
-        """
-        # create path structure
-        auth_path = os.path.join(self._root_path, 'vault', '.auth')
-        gpg_home = os.path.join(self._root_path, 'gnupg')
-        mkdir_p(auth_path)
-        mkdir_p(gpg_home)
-
-    def create_key(self, user, email, password):
-        root = os.path.expanduser('~/.config/cabinet/')
-        gpg_home = os.path.join(root, 'gnupg')
-
-        g = GPGHelper(gpg_home)
-        fingerprint = g.create_key(user, email, password)
-        # g.display_keys()
-        # g.get_key()
-        return fingerprint
-
-    def get_my_fingerprint(self):
-        """
-        Return the current user's fingerprint or None if there is no private
-        key.
-
-        :rtype: str or None
-        """
-        root = os.path.expanduser('~/.config/cabinet/')
-        gpg_home = os.path.join(root, 'gnupg')
-        g = GPGHelper(gpg_home)
-
-        keylist = g.get_keys(secret=True)
-
-        if not keylist:
-            return None
-
-        # it CAN be more but it SHOULD be just one private key
-        if len(keylist) > 1:
-            print keylist
-            raise Exception("There is more than one private key.")
-
-        return keylist[0]['fingerprint']
-
-    def get_key(self, fingerprint):
-        root = os.path.expanduser('~/.config/cabinet/')
-        gpg_home = os.path.join(root, 'gnupg')
-        g = GPGHelper(gpg_home)
-        return g.get_key(fingerprint)
-
-    def set_admin(self, fingerprint, overwrite=False):
-        # create admin's key pair
-        if os.path.isfile(self._recipients_file) and not overwrite:
-            raise IOError("File already exists")
-
-        with open(self._recipients_file, 'w') as r:
-            r.write(fingerprint)
-
-    def get_node_list(self):
-        return self._mapper.list_nodes()
-
-    def get_tree(self):
-        nodes = self.get_node_list()
-        nodes.sort()
-        t = TreeList(nodes)
-        return t.get_tree()
+        fname = metadata['hashname']
+        data_path = os.path.join(self._base_path, 'data')
+        fname = os.path.join(data_path, fname)
+        self._file_write(fname, content)
 
     def get(self, name):
-        """
-        Return the data contained in the key 'name'.
+        metadata = self._names.get(name)
+        if metadata is None:
+            return
 
-        :param name: the name of the data contents that you want to retrieve.
-        :type name: str
-        """
-        random_name = self._mapper.get_node(name)
+        fname = metadata['hashname']
+        data_path = os.path.join(self._base_path, 'data')
+        fname = os.path.join(data_path, fname)
+        content = self._file_read(fname)
+        metadata['content'] = content
 
-        path = os.path.join(self._base_path, random_name)
-        with open(path, 'r') as f:
-            e_data = f.read()
+        return metadata
 
-        data = self._decipher(e_data)
+    def get_all(self):
+        return self._names
+
+    def _load_metadata(self):
+        metadata_path = os.path.join(self._base_path, 'metadata')
+        tags = {}
+        names = {}
+
+        for fname in os.listdir(metadata_path):
+            file_path = os.path.join(metadata_path, fname)
+            obj = self._file_read(file_path)
+            names[obj['name']] = obj
+
+            for tag in obj['tags']:
+                if tags.get(tag):
+                    tags[tag].append(fname)
+                else:
+                    tags[tag] = [fname]
+
+        self._tags = tags
+        self._names = names
+
+    def open(self, key):
+        self._key = key
+        # TODO: test key
+        self._load_metadata()
+
+    def _encrypt(self, data):
+        # maybe base this on a random string created along the vault
+        salt = 'this must be rethinked!'
+        ch = CryptoHelper()
+        return ch.encrypt(data, self._key, salt)
+
+    def _decrypt(self, data):
+        salt = 'this must be rethinked!'
+        ch = CryptoHelper()
+        return ch.decrypt(data, self._key, salt)
+
+    def _file_read(self, filename):
+        encrypted_data = None
+        with open(filename, 'r') as f:
+            encrypted_data = f.read()
+
+        b_decrypted_data = self._decrypt(encrypted_data)
+        decrypted_data = b_decrypted_data.decode('utf-8')
+        json_data = decrypted_data
+        data = json.loads(json_data)
+
         return data
 
-    def add(self, name, data, overwrite=False):
-        """
-        Add new data. It is stored encrypted.
-
-        :param name: the name of the data contents that you want to retrieve.
-        :type name: str
-        :param data: the data to store
-        :type data: str
-        :param overwrite: whether we should overwrite or not the file if it
-                          exists.
-        :type overwrite: bool
-        """
-        random_name = self._mapper.add_node(name)
-
-        e_data = self._cipher(data)
-        path = os.path.join(self._base_path, random_name)
-
-        if os.path.isfile(path) and not overwrite:
-            raise IOError("File already exists")
-
-        folder = os.path.dirname(path)
-        mkdir_p(folder)
-
-        with open(path, 'w') as f:
-            f.write(e_data)
-
-    def remove(self, name):
-        """
-        Remove existing password or directory, optionally forcefully.
-        """
-        pass
-
-    def move(self, old_name, new_name):
-        """
-        Renames or moves old-path to new-path, optionally forcefully,
-        selectively reencrypting.
-        """
-        pass
+    def _file_write(self, filename, obj):
+        json_data = json.dumps(obj)
+        b_json_data = json_data.encode('utf-8')
+        encrypted_data = self._encrypt(b_json_data)
+        encrypted_data = encrypted_data.decode()
+        with open(filename, 'w') as f:
+            f.write(encrypted_data)
