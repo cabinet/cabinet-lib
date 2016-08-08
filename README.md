@@ -17,6 +17,7 @@ just yet.
     │   ├── admin                    │   ├── admin
     │   ├── admin-user-A.asc         │   ├── admin-user-A.asc
     │   ├── admin-user-B.asc         │   ├── admin-user-B.asc
+    │   ├── mappings.json            │   ├── mappings.json
     │   └── recipients               │   └── recipients
     ├── Personal                     ├── F6zYkOJVLYXTCsDV4KUfm5H5NcMisX3eS5F20OTTgrU
     │   ├── my-gmail-account         │   Prcicxh4HUWIXWjJRHNfmRi_5WL0k71SZkg
@@ -26,6 +27,7 @@ just yet.
     │   │   ├── admin                │   │   ├── admin
     │   │   ├── admin-user-A.asc     │   │   ├── admin-user-A.asc
     │   │   ├── admin-user-C.asc     │   │   ├── admin-user-C.asc
+    │   │   ├── mappings.json        │   │   ├── mappings.json
     │   │   └── recipients           │   │   └── recipients
     │   ├── business-email-account   │   ├──  S6mLxBWIYLKGPfQI4XHsz5U5ApZvfK3rF5S20BGGteH
     │   └── alarm-code               │   └──  Cepvpku4UHJVKJwWEUAszEv_5JY0x71FMxt
@@ -49,6 +51,10 @@ called `.auth/admin-user-A.asc`.
 In order to be considered valid, each data file has to be signed by either the
 group admin or a user in the recipients file.
 
+
+NOTE: we should use fingerprints and not key id nor emails for identification.
+See:
+https://help.riseup.net/en/security/message-security/openpgp/best-practices#dont-rely-on-the-key-id
 
 ## File names hiding
 

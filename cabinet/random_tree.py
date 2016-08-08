@@ -13,6 +13,38 @@ import json
 import os
 
 
+def get_map_from(path=None):
+    return {}
+
+
+def get_real_name(random_name):
+    """
+    Not working/tested yet.
+    First draft to find the real name in a tree of (possibly) more than one
+    mapping file.
+    """
+    names = get_map_from()
+    real_name = ''
+
+    partial_random = ''
+    for part in random_name.split('/'):
+        partial_random += '/' + part
+        if names.get(partial_random) is not None:
+            if names.get(partial_random) == names.get(random_name):
+                real_name = names.get(random_name)  # Found it!
+                break
+            else:
+                continue  # there is (possibly) more path to get
+        else:
+            # either non existent node or I need to continue with other map
+            last_random_name = partial_random.split('/')[:-1]
+            names = get_map_from(last_random_name)
+            # TODO: maybe some recursion here?
+            # get_real_name(partial_random.split('/')[-1])
+
+    return real_name
+
+
 class RandomTree(object):
     def __init__(self, storage_path):
         self._json_path = storage_path
