@@ -57,26 +57,12 @@ def get(name='test-item #1'):
 
 
 def main():
-    # uncomment to insert some test data
-    # content = {
-    #     'username': 'testuser - rpc',
-    #     'password': 'asdfasdf',
-    #     'site-url': 'https://example.com/rpc',
-    #     'notes': 'added using rpc',
-    # }
-    # item = {
-    #     'name': 'test-item #3',
-    #     'tags': ['rpc', 'remote', 'test'],
-    #     'content': content,
-    # }
-    # rpc_call('App.add', item=item)
-
-    # items = get_all()
+    # Note: use `test-app.py` to add some random data
     items = rpc_call("App.get_all")
     import pprint
     pprint.pprint(items)
 
-    pprint.pprint(rpc_call('App.get', name='test-item #2'))
+    pprint.pprint(rpc_call('App.get', name='test-item #42'))
 
 if __name__ == "__main__":
     main()

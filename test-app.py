@@ -1,15 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import random
 
 from cabinet import Cabinet
 
 
+def get_item(number=None):
+    if number is None:
+        n = random.randrange(1, 500)
+    else:
+        n = number
+
+    content = {
+        'username': 'testuser #' + str(n),
+        'password': 'not so supersecretpassword',
+        'site-url': 'https://example.com/login/' + str(n),
+        'notes': '',
+    }
+    item = {
+        'name': 'test-item #' + str(n),
+        'tags': ['test', 'something', 'blah'],
+        'content': content,
+    }
+
+    return item
+
+
 def main():
-    # TODO: get this from config?
     account_id = 'my-name@my-company.com'
     password = b'asdfasdf'
-    # password = getpass.getpass("Password: ")
 
     temp_config_path = os.path.join(os.getcwd(), 'test.data', 'secrets')
     test_vault_path = os.path.join(os.getcwd(), 'test.data', 'vaults')
@@ -17,25 +37,19 @@ def main():
 
     cab = Cabinet(account_id, password, temp_config_path)
     cab.open(name, test_vault_path)
+
+    item = get_item()
+    cab.add(item)
+
+    item = get_item(42)
+    cab.add(item)
+
+    print('-'*10)
     import pprint
     pprint.pprint(cab.get_all())
 
-    # # uncomment to insert some test data
-    # content = {
-    #     'username': 'testuser',
-    #     'password': 'not so supersecretpassword',
-    #     'site-url': 'https://example.com/2',
-    #     'notes': '',
-    # }
-    # item = {
-    #     'name': 'test-item #2',
-    #     'tags': ['test', 'something', 'blah'],
-    #     'content': content,
-    # }
-    # cab.add(item)
-
     print('-'*10)
-    name = 'test-item #2'
+    name = 'test-item #42'
     print(name)
     pprint.pprint(cab.get(name))
 
