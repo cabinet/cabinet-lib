@@ -60,3 +60,7 @@ pyenv
 
 # test data paths
 test.data
+
+# Temporal vim files
+*.swp
+*.swo
