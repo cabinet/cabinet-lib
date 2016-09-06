@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import errno
+import os
 import nacl.utils
 
 from nacl.secret import SecretBox
@@ -34,3 +35,22 @@ class CryptoHelper:
         data = box.decrypt(data, encoder=nacl.encoding.Base64Encoder)
 
         return data
+
+
+def mkdir_p(path):
+    """
+    Creates the path and all the intermediate directories that don't
+    exist
+
+    Might raise OSError
+
+    :param path: path to create
+    :type path: str
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise

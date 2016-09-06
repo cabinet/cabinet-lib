@@ -1,30 +1,10 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import errno
 import copy
 import json
 import os
 
-from cabinet.utils import CryptoHelper
-
-
-def mkdir_p(path):
-    """
-    Creates the path and all the intermediate directories that don't
-    exist
-
-    Might raise OSError
-
-    :param path: path to create
-    :type path: str
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+from cabinet.utils import CryptoHelper, mkdir_p
 
 
 class Vault(object):
