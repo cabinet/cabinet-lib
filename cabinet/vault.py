@@ -4,6 +4,8 @@ import copy
 import json
 import os
 
+from uuid import uuid4
+
 from cabinet.utils import CryptoHelper, mkdir_p
 
 
@@ -32,7 +34,6 @@ class Vault(object):
         self._names[name] = metadata
         self._tags[name] = metadata['tags']
 
-        from uuid import uuid4
         fname = uuid4().hex
         metadata['hashname'] = fname
 
