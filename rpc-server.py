@@ -6,6 +6,7 @@ from functools import wraps
 from flask import Flask, session, request
 from flask_jsonrpc import JSONRPC
 from flask_jsonrpc.exceptions import InvalidCredentialsError
+from firebase_token_generator import create_token
 
 from cabinet import Cabinet
 
@@ -37,7 +38,12 @@ cab.open(name, test_vault_path)
 
 
 def generateToken(username, password, vault_path):
-    token = 'SOME_TOKEN'
+    auth_payload = {
+        'uid': username,
+        'password': password,
+        'vault_path': vault_path
+    }
+    token = create_token(SECURITY_SALT, auth_payload)
     session['username'] = username
     session['vault_path'] = vault_path
     session['token'] = token
