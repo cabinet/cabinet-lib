@@ -36,11 +36,25 @@ cab = Cabinet(account_id, password, temp_config_path)
 cab.open(name, test_vault_path)
 
 
+def generateToken(username, password, vault_path):
+    token = 'SOME_TOKEN'
+    session['username'] = username
+    session['vault_path'] = vault_path
+    session['token'] = token
+    session.permanent = True
+
+
 def check_auth(token):
     token = request.headers.get('token')
     if 'token' in session:
         return token == session['token']
     return False
+
+
+@jsonrpc.method('App.login(username=str, password=str, vault_path=str) -> str')
+def login(username, password, vault_path):
+    generateToken(username, password, vault_path)
+    return session['token']
 
 
 @jsonrpc.method('App.get_all')
