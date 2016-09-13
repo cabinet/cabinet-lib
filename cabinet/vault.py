@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 import errno
+import copy
 import json
 import os
 
@@ -42,10 +43,11 @@ class Vault(object):
         mkdir_p(data_path)
 
     def add(self, item):
-        name = item['name']
-        metadata = item
-        content = item['content']
-        del item['content']
+        metadata = copy.deepcopy(item)
+
+        name = metadata['name']
+        content = metadata['content']
+        del metadata['content']  # no content along with metadata
 
         self._names[name] = metadata
         self._tags[name] = metadata['tags']
@@ -65,7 +67,8 @@ class Vault(object):
         self._file_write(fname, content)
 
     def get(self, name):
-        metadata = self._names.get(name)
+        metadata = copy.deepcopy(self._names.get(name))
+
         if metadata is None:
             return
 
@@ -75,10 +78,20 @@ class Vault(object):
         content = self._file_read(fname)
         metadata['content'] = content
 
+        # hashname is not returned to the user, its goal is just to find
+        # information on the disk
+        del metadata['hashname']
+
         return metadata
 
     def get_all(self):
-        return self._names
+        all_items = copy.deepcopy(self._names)
+
+        # remove randomly generated hashes
+        for k in all_items:
+            del all_items[k]['hashname']
+
+        return all_items
 
     def _load_metadata(self):
         metadata_path = os.path.join(self._base_path, 'metadata')

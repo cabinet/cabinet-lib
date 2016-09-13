@@ -88,3 +88,37 @@ key until hits its own, this prevents anyone from knowing who the participants a
 
 Your secret key is used to decrypt the vault key, and is stored on
 `~/.config/cabinet/secrets/your-name@your-company.com/secret.key`.
+
+
+# TODO:
+
+One user, git sync, no digital signature verification since only one user has access to the secret key
+
+
+--------------------
+TODO FROM HERE:
+
+## Access control
+
+Each `.auth/recipients` file has the fingerprints for the users for which the
+passwords will be encrypted. If there is no such file the parent's one will be
+used. The recipients file will be signed by the group admin.
+
+The `admin` file contains the fingerprint for the user who is the group admin
+and the only one allowed to edit the recipients file.
+
+Each user in `.auth/recipients` signs the `.auth/admin` file right after
+verifying the fingerprint on it. Thus, user 'user-A' will generate a file
+called `.auth/admin-user-A.asc`.
+
+In order to be considered valid, each data file has to be signed by either the
+group admin or a user in the recipients file.
+
+
+## Storage
+
+The vault is stored on `~/.config/cabinet/vault/`, this folder will be stored on
+a git repo and a wrapper will be created to automate git workflow. Combining
+git with file-level password storage allows a group of people to work over a
+vault of passwords lowering as much as possible facing edit/sync conflicts.
+

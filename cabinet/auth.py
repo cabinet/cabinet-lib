@@ -7,8 +7,6 @@ from nacl.exceptions import CryptoError
 
 from cabinet.person import Person
 
-VAULTS_PATH = os.path.join(os.getcwd(), 'vaults')
-
 
 def mkdir_p(path):
     """
