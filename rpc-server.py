@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import bcrypt
 
 from functools import wraps
 from flask import Flask, session, request
@@ -10,8 +11,8 @@ from firebase_token_generator import create_token
 
 from cabinet import Cabinet
 
-SECURITY_SALT = 'something to be changed in production'
 
+SECURITY_SALT = bcrypt.gensalt().decode("utf-8")
 app = Flask(__name__)
 
 
