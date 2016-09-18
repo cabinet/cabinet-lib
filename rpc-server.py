@@ -12,8 +12,6 @@ from inspect import getargspec
 
 from cabinet import Cabinet
 
-
-SECURITY_SALT = bcrypt.gensalt().decode("utf-8")
 app = Flask(__name__)
 
 
@@ -67,6 +65,7 @@ cab.open(name, test_vault_path)
 
 
 def generateToken(username, password, vault_path):
+    SECURITY_SALT = bcrypt.gensalt().decode("utf-8")
     auth_payload = {
         'uid': username,
         'password': password,
