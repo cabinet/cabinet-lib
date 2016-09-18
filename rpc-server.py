@@ -100,7 +100,7 @@ def get_random_open_port():
 
 
 if __name__ == '__main__':
-    app.secret_key = 'something really really secret =D'
+    app.secret_key = bcrypt.gensalt().decode('utf8')
     # app.run(host='0.0.0.0', port=5000, debug=True)
     app.run(port=5000, debug=True)  # only localhost, default port
 
