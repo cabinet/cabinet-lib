@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-import bcrypt
+import base64
 
 from flask import Flask, session, request
 from firebase_token_generator import create_token
@@ -25,7 +25,7 @@ cab.open(name, test_vault_path)
 
 
 def generateToken(username, password, vault_path):
-    SECURITY_SALT = bcrypt.gensalt().decode("utf-8")
+    SECURITY_SALT = base64.b64encode(os.urandom(60)).decode('utf-8')
     auth_payload = {
         'uid': username,
         'password': password,
@@ -47,6 +47,7 @@ def check_auth(token):
 
 @jsonrpc.method('App.login(username=str, password=str, vault_path=str) -> str')
 def login(username, password, vault_path):
+    # TODO: For now, the user and password is not being validated for now.
     generateToken(username, password, vault_path)
     return session['token']
 
@@ -88,7 +89,7 @@ def get_random_open_port():
 
 
 if __name__ == '__main__':
-    app.secret_key = bcrypt.gensalt().decode('utf8')
+    app.secret_key = base64.b64encode(os.urandom(60))
     # app.run(host='0.0.0.0', port=5000, debug=True)
     app.run(port=5000, debug=True)  # only localhost, default port
 
