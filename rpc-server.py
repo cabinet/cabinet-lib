@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import sys
 import socket
 
 from flask import Flask, session, request
@@ -82,9 +83,12 @@ token = token_urlsafe(32)
 # Only the process that started up the server will be able to get this token.
 print(token)
 
-
 # Notify the calling process, what is the port to use for communication.
 print(port)
+
+# Redirect stdout and stderror to log files
+sys.stdout = open('rpc-server.out', 'w')
+sys.stderr = open('rpc-server.err', 'w')
 
 
 if __name__ == '__main__':
