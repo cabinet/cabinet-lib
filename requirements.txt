@@ -2,5 +2,3 @@ pynacl  # needs libffi-dev
 argon2_cffi
 Flask-JSONRPC
 requests
-firebase-token-generator
-bcrypt
