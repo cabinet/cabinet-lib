@@ -82,10 +82,10 @@ port = get_random_open_port()
 token = token_urlsafe(32)
 
 # Only the process that started up the server will be able to get this token.
-print(token)
+print(token, file=sys.stdout, flush=True)
 
 # Notify the calling process, what is the port to use for communication.
-print(port)
+print(port, file=sys.stdout, flush=True)
 
 # Redirect stdout and stderror to log files
 sys.stdout = open('rpc-server.out', 'w')
