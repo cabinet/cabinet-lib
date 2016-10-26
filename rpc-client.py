@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import requests
 import json
+
+from subprocess import Popen, PIPE
 
 url = "http://localhost:5000/api/v1"
 headers = {'content-type': 'application/json'}
@@ -56,13 +57,26 @@ def get(name='test-item #1'):
     return response
 
 
-def main():
-    # Note: use `test-app.py` to add some random data
-    items = rpc_call("App.get_all")
-    import pprint
-    pprint.pprint(items)
+def getTokenAndPort():
+    p = Popen(['python', 'rpc-server.py'], stdout=PIPE)
+    token = p.stdout.readline().decode('ascii')
+    port = p.stdout.readline().decode('ascii')
+    return token, port
 
-    pprint.pprint(rpc_call('App.get', name='test-item #42'))
+
+def main():
+
+    token, port = getTokenAndPort()
+
+    print(token)
+    print(port)
+
+    # Note: use `test-app.py` to add some random data
+    # items = rpc_call("App.get_all")
+    # import pprint
+    # pprint.pprint(items)
+    #
+    # pprint.pprint(rpc_call('App.get', name='test-item #42'))
 
 if __name__ == "__main__":
     main()
