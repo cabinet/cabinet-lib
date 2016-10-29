@@ -9,6 +9,16 @@ url = "http://localhost:5000/api/v1"
 headers = {'content-type': 'application/json'}
 
 
+def setUrlPort(port=5000):
+    global url
+    url = "http://localhost:{port}/api/v1".format(port=port)
+
+
+def setHeaderToken(token=None):
+    global headers
+    headers['token'] = token
+
+
 def rpc_call(method_name, **kwargs):
     url = "http://localhost:5000/api/v1"
     headers = {'content-type': 'application/json'}
@@ -59,8 +69,8 @@ def get(name='test-item #1'):
 
 def getTokenAndPort():
     p = Popen(['python', 'rpc-server.py'], stdout=PIPE)
-    token = p.stdout.readline().decode('ascii')
-    port = p.stdout.readline().decode('ascii')
+    token = p.stdout.readline().decode('ascii').strip()
+    port = p.stdout.readline().decode('ascii').strip()
     return token, port
 
 
@@ -70,6 +80,9 @@ def main():
 
     print(token)
     print(port)
+
+    setHeaderToken(token)
+    setUrlPort(port)
 
     # Note: use `test-app.py` to add some random data
     # items = rpc_call("App.get_all")
