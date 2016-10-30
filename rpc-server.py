@@ -4,15 +4,16 @@ import os
 import sys
 import socket
 
-from flask import Flask, session, request
+from flask import Flask, session
 
 from cabinet import Cabinet
-from rpc import FixedJSONRPC, authenticate, token_urlsafe
+from flask_jsonrpc import JSONRPC
+from rpc import authenticate, token_urlsafe
 
 app = Flask(__name__)
 
 
-jsonrpc = FixedJSONRPC(app, '/api/v1', auth_backend=authenticate)
+jsonrpc = JSONRPC(app, '/api/v1')
 
 account_id = 'my-name@my-company.com'
 password = b'asdfasdf'
@@ -25,12 +26,12 @@ cab.open(name, test_vault_path)
 
 
 def check_auth(client_token):
-    client_token = request.headers.get('token')
     return token == client_token
 
 
 @jsonrpc.method('App.open_vault(username=str, password=str, vault_path=str)'
                 ' -> str')
+@authenticate(check_auth)
 def open_vault(username, password, vault_path):
     # TODO: Implement username/password/vault validation and opening
     session['username'] = username
@@ -59,8 +60,8 @@ def index():
     return u'hello world!'
 
 
-@jsonrpc.method('App.echo(name=str) -> str', validate=True,
-                authenticated=check_auth)
+@jsonrpc.method('App.echo(name=str) -> str', validate=True)
+@authenticate(check_auth)
 def echo(name='Flask JSON-RPC'):
     return u'Hello {0}'.format(name)
 
