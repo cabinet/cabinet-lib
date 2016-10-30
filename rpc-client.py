@@ -85,6 +85,30 @@ def open_vault(username='User 1', password='Some secret',
     return response
 
 
+def fake_open_vault(username='User 1', password='Some secret',
+                    vault_path='/some/path'):
+    payload = {
+        "method": "App.open_vault",
+        "params": {
+            'username': username,
+            'password': password,
+            'vault_path': vault_path
+        },
+        "jsonrpc": "2.0",
+        'id': 0,
+    }
+
+    fake_headers = {
+        'content-type': 'application/json',
+        'token': 'WRONG TOKEN'
+    }
+
+    response = requests.post(
+        url, data=json.dumps(payload), headers=fake_headers).json()
+
+    return response
+
+
 def getTokenAndPort():
     p = Popen(['python', 'rpc-server.py'], stdout=PIPE)
     token = p.stdout.readline().decode('ascii').strip()
@@ -111,11 +135,18 @@ def main():
                    vault_path='/somepath')
     pprint.pprint(r)
 
+    # Open a vault, but with a false token
+    r = fake_open_vault(username='Facundo',
+                        password='some pass',
+                        vault_path='/somepath')
+    pprint.pprint(r)
+
     # Note: use `test-app.py` to add some random data
     items = rpc_call("App.get_all")
     pprint.pprint(items)
 
     pprint.pprint(rpc_call('App.get', name='test-item #42'))
+
 
 if __name__ == "__main__":
     main()
