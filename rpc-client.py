@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 import requests
 import json
+import pprint
 
 from subprocess import Popen, PIPE
+from time import sleep
 
 url = "http://localhost:5000/api/v1"
 headers = {'content-type': 'application/json'}
@@ -20,9 +22,6 @@ def setHeaderToken(token=None):
 
 
 def rpc_call(method_name, **kwargs):
-    url = "http://localhost:5000/api/v1"
-    headers = {'content-type': 'application/json'}
-
     payload = {
         "method": method_name,
         "params": kwargs,
@@ -67,6 +66,25 @@ def get(name='test-item #1'):
     return response
 
 
+def open_vault(username='User 1', password='Some secret',
+               vault_path='/some/path'):
+    payload = {
+        "method": "App.open_vault",
+        "params": {
+            'username': username,
+            'password': password,
+            'vault_path': vault_path
+        },
+        "jsonrpc": "2.0",
+        'id': 0,
+    }
+
+    response = requests.post(
+        url, data=json.dumps(payload), headers=headers).json()
+
+    return response
+
+
 def getTokenAndPort():
     p = Popen(['python', 'rpc-server.py'], stdout=PIPE)
     token = p.stdout.readline().decode('ascii').strip()
@@ -78,18 +96,26 @@ def main():
 
     token, port = getTokenAndPort()
 
-    print(token)
-    print(port)
+    print("Token: {token}".format(token=token))
+    print("Port: {port}".format(port=port))
 
     setHeaderToken(token)
     setUrlPort(port)
 
+    # Just wait for a delay until the server opens the port
+    sleep(2)
+
+    # Open a vault
+    r = open_vault(username='Facundo',
+                   password='some pass',
+                   vault_path='/somepath')
+    pprint.pprint(r)
+
     # Note: use `test-app.py` to add some random data
-    # items = rpc_call("App.get_all")
-    # import pprint
-    # pprint.pprint(items)
-    #
-    # pprint.pprint(rpc_call('App.get', name='test-item #42'))
+    items = rpc_call("App.get_all")
+    pprint.pprint(items)
+
+    pprint.pprint(rpc_call('App.get', name='test-item #42'))
 
 if __name__ == "__main__":
     main()
