@@ -29,13 +29,14 @@ def check_auth(client_token):
     return token == client_token
 
 
-@jsonrpc.method('App.open(username=str, password=str, vault_path=str) -> str')
-def login(username, password, vault_path):
-    # TODO: For now, the user and password is not being validated for now.
+@jsonrpc.method('App.open_vault(username=str, password=str, vault_path=str)'
+                ' -> str')
+def open_vault(username, password, vault_path):
+    # TODO: Implement username/password/vault validation and opening
     session['username'] = username
     session['password'] = password
     session['vault_path'] = vault_path
-    return 'success'
+    return {'success': True}
 
 
 @jsonrpc.method('App.get_all')
