@@ -13,6 +13,10 @@ VAULTS_PATH = os.path.join(BASE_PATH, 'vaults')
 
 class Cabinet:
     def __init__(self, account_id, password, config_path=CONFIG_PATH):
+        if isinstance(password, str):
+            # password must be bytes
+            password = password.encode('utf-8')
+
         self._config_path = config_path
         self._account_id = account_id
         self._password = password
