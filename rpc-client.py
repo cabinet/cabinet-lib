@@ -66,14 +66,13 @@ def get(name='test-item #1'):
     return response
 
 
-def open_vault(username='User 1', password='Some secret',
-               vault_path='/some/path'):
+def open_vault(username, password, vault_name):
     payload = {
         "method": "App.open_vault",
         "params": {
             'username': username,
             'password': password,
-            'vault_path': vault_path
+            'vault_name': vault_name
         },
         "jsonrpc": "2.0",
         'id': 0,
@@ -86,13 +85,13 @@ def open_vault(username='User 1', password='Some secret',
 
 
 def fake_open_vault(username='User 1', password='Some secret',
-                    vault_path='/some/path'):
+                    vault_name='my-vault'):
     payload = {
         "method": "App.open_vault",
         "params": {
             'username': username,
             'password': password,
-            'vault_path': vault_path
+            'vault_name': vault_name
         },
         "jsonrpc": "2.0",
         'id': 0,
@@ -116,6 +115,13 @@ def getTokenAndPort():
     return token, port
 
 
+def show_response(msg, r):
+    print('-' * 20)
+    print(msg)
+    pprint.pprint(r)
+    print()
+
+
 def main():
 
     token, port = getTokenAndPort()
@@ -129,23 +135,25 @@ def main():
     # Just wait for a delay until the server opens the port
     sleep(2)
 
+    # Vault data, same as on test-app.py
+    account_id = 'my-name@my-company.com'
+    password = 'asdfasdf'
+    vault_name = 'test-vault'
+
     # Open a vault
-    r = open_vault(username='Facundo',
-                   password='some pass',
-                   vault_path='/somepath')
-    pprint.pprint(r)
+    r = open_vault(account_id, password, vault_name)
+    show_response("Open vault with correct token", r)
 
     # Open a vault, but with a false token
-    r = fake_open_vault(username='Facundo',
-                        password='some pass',
-                        vault_path='/somepath')
-    pprint.pprint(r)
+    r = fake_open_vault(account_id, password, vault_name)
+    show_response("Open vault with wrong token", r)
 
     # Note: use `test-app.py` to add some random data
     items = rpc_call("App.get_all")
-    pprint.pprint(items)
+    show_response("Get all the items", items)
 
-    pprint.pprint(rpc_call('App.get', name='test-item #42'))
+    r = rpc_call('App.get', name='test-item #42')
+    show_response("Get one item", r)
 
 
 if __name__ == "__main__":
