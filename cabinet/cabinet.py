@@ -57,4 +57,47 @@ class Cabinet:
         return self._vault.get(name)
 
     def add(self, item):
+        """Add an item.
+
+        @param item: the item is a dict of the form:
+
+        {
+          'name': 'the name of this item',
+          'tags': ['test', 'something', 'blah'],
+          'content': content_of_any_kind,
+        }
+
+        name and content are mandatory, tags can be None.
+
+        """
+
+        name = item['name']
+        content = item['content']
+        tags = item.get('tags')
+
+        self.add_item(name, content, tags)
+
+    def add_new(self, name, content, tags=None):
+        """Add a new item to the Vault.
+
+        :param name: the name of the new item
+        :type name: str
+
+        :param content: the content of the new item
+        :type content: any
+
+        :param tags: the tags for the new content
+        :type tags: list
+
+        Note: eventually, this should be just `add` but is named `add_new` to
+        avoid breaking existing code.
+        """
+        if tags is None:
+            tags = []
+
+        item = {
+            'name': name,
+            'tags': tags,
+            'content': content,
+        }
         self._vault.add(item)
