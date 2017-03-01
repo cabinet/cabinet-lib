@@ -1,118 +1,110 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import requests
 import json
 import pprint
+import requests
 
 from subprocess import Popen, PIPE
 from time import sleep
 
-url = "http://localhost:5000/api/v1"
-headers = {'content-type': 'application/json'}
 
+class RPCClient:
+    def __init__(self):
+        self._headers = {'content-type': 'application/json'}
+        self._server_started = False
 
-def setUrlPort(port=5000):
-    global url
-    url = "http://localhost:{port}/api/v1".format(port=port)
+    def start_server(self):
+        """Start server and use it for API calls."""
+        if self._server_started:
+            print("Error, server already started.")
+            return
 
+        self._server = Popen(['python', 'rpc-server.py'], stdout=PIPE)
+        out = self._server.stdout
+        token = out.readline().decode('ascii').strip()
+        port = out.readline().decode('ascii').strip()
 
-def setHeaderToken(token=None):
-    global headers
-    headers['token'] = token
+        self._url = "http://localhost:{port}/api/v1".format(port=port)
+        self._headers['token'] = token
 
+        # Wait until the server starts
+        sleep(2)
 
-def rpc_call(method_name, **kwargs):
-    payload = {
-        "method": method_name,
-        "params": kwargs,
-        "jsonrpc": "2.0",
-        'id': 0,
-    }
+        print('Server started')
+        print("Token: {token}".format(token=token))
+        print("Port: {port}".format(port=port))
+        self._server_started = True
 
-    res = requests.post(url, data=json.dumps(payload), headers=headers)
-    response = res.json()
+    def set_server(self, port, token):
+        """Use this to use an already running server."""
+        self._url = "http://localhost:{port}/api/v1".format(port=port)
+        self._headers['token'] = token
 
-    return response
+    def stop_server(self):
+        if not self._server_started:
+            print("Error, server not started.")
+            return
 
+        self._server.terminate()
+        self._server_started = False
+        print("Server stopped")
 
-def get_all():
-    payload = {
-        "method": "App.get_all",
-        "params": None,
-        "jsonrpc": "2.0",
-        'id': 0,
-    }
+    def _rpc_call(self, method_name, **kwargs):
+        if not self._server_started:
+            print("Error, server not started.")
+            return
 
-    response = requests.post(
-        url, data=json.dumps(payload), headers=headers).json()
+        payload = {
+            "method": method_name,
+            "params": kwargs,
+            "jsonrpc": "2.0",
+            'id': 0,
+        }
 
-    return response
-    # assert response["result"] == "hello world!"
-    # assert response["jsonrpc"]
-    # assert response["id"] == 0
+        res = requests.post(
+            self._url,
+            data=json.dumps(payload),
+            headers=self._headers)
+        response = res.json()
 
+        return response
 
-def get(name='test-item #1'):
-    payload = {
-        "method": "App.get",
-        "params": {'name': name},
-        "jsonrpc": "2.0",
-        'id': 0,
-    }
+    def open_vault(self, username, password, vault_name):
+        response = self._rpc_call(
+            "App.open_vault",
+            username=username,
+            password=password,
+            vault_name=vault_name)
 
-    response = requests.post(
-        url, data=json.dumps(payload), headers=headers).json()
+        return response
 
-    return response
+    def open_vault_invalid(self, username='User 1', password='Some secret',
+                           vault_name='my-vault'):
+        valid_headers = self._headers
 
+        # wrong headers
+        self._headers = {
+            'content-type': 'application/json',
+            'token': 'WRONG TOKEN'
+        }
 
-def open_vault(username, password, vault_name):
-    payload = {
-        "method": "App.open_vault",
-        "params": {
-            'username': username,
-            'password': password,
-            'vault_name': vault_name
-        },
-        "jsonrpc": "2.0",
-        'id': 0,
-    }
+        response = self._rpc_call(
+            "App.open_vault",
+            username=username,
+            password=password,
+            vault_name=vault_name)
 
-    response = requests.post(
-        url, data=json.dumps(payload), headers=headers).json()
+        # restore valid headers
+        self._headers = valid_headers
+        return response
 
-    return response
+    def get_all(self):
+        response = self._rpc_call("App.get_all")
+        return response
 
-
-def fake_open_vault(username='User 1', password='Some secret',
-                    vault_name='my-vault'):
-    payload = {
-        "method": "App.open_vault",
-        "params": {
-            'username': username,
-            'password': password,
-            'vault_name': vault_name
-        },
-        "jsonrpc": "2.0",
-        'id': 0,
-    }
-
-    fake_headers = {
-        'content-type': 'application/json',
-        'token': 'WRONG TOKEN'
-    }
-
-    response = requests.post(
-        url, data=json.dumps(payload), headers=fake_headers).json()
-
-    return response
-
-
-def getTokenAndPort():
-    p = Popen(['python', 'rpc-server.py'], stdout=PIPE)
-    token = p.stdout.readline().decode('ascii').strip()
-    port = p.stdout.readline().decode('ascii').strip()
-    return token, port
+    def get(self, name):
+        response = self._rpc_call("App.get", name=name)
+        return response
 
 
 def show_response(msg, r):
@@ -123,17 +115,8 @@ def show_response(msg, r):
 
 
 def main():
-
-    token, port = getTokenAndPort()
-
-    print("Token: {token}".format(token=token))
-    print("Port: {port}".format(port=port))
-
-    setHeaderToken(token)
-    setUrlPort(port)
-
-    # Just wait for a delay until the server opens the port
-    sleep(2)
+    client = RPCClient()
+    client.start_server()
 
     # Vault data, same as on test-app.py
     account_id = 'my-name@my-company.com'
@@ -141,19 +124,21 @@ def main():
     vault_name = 'test-vault'
 
     # Open a vault
-    r = open_vault(account_id, password, vault_name)
+    r = client.open_vault(account_id, password, vault_name)
     show_response("Open vault with correct token", r)
 
     # Open a vault, but with a false token
-    r = fake_open_vault(account_id, password, vault_name)
+    r = client.open_vault_invalid(account_id, password, vault_name)
     show_response("Open vault with wrong token", r)
 
     # Note: use `test-app.py` to add some random data
-    items = rpc_call("App.get_all")
+    items = client.get_all()
     show_response("Get all the items", items)
 
-    r = rpc_call('App.get', name='test-item #42')
+    r = client.get(name='test-item #42')
     show_response("Get one item", r)
+
+    client.stop_server()
 
 
 if __name__ == "__main__":
