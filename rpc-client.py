@@ -15,6 +15,10 @@ class RPCClient:
 
     def start_server(self):
         """Start server and use it for API calls."""
+        if self._server_started:
+            print("Error, server already started.")
+            return
+
         self._server = Popen(['python', 'rpc-server.py'], stdout=PIPE)
         out = self._server.stdout
         token = out.readline().decode('ascii').strip()
