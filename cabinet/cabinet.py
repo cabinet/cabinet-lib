@@ -75,7 +75,7 @@ class Cabinet:
         content = item['content']
         tags = item.get('tags')
 
-        self.add_item(name, content, tags)
+        self.add_new(name, content, tags)
 
     def add_new(self, name, content, tags=None):
         """Add a new item to the Vault.
