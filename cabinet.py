@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# This is the first cli prototype for the cabinet core.
+#
 # References;
 #   argparse : https://docs.python.org/3/library/argparse.html
 #   cement   : http://builtoncement.com/2.10/index.html
+#
+# TODO:
+#   - Move the cli to it's own repo (inside a new 'Cabinet' organization).
+#   - Refactor the code to move each class, utils to its own module.
+
 import os
 import argparse
 
@@ -12,104 +19,105 @@ from cement.core.controller import CementBaseController, expose
 
 from cabinet import Cabinet
 
-VERSION = '0.9.1'
+VERSION = '0.0.1'
 BANNER = """
 Cabinet command line v{0}
 GNU GENERAL PUBLIC LICENSE
 """.format(VERSION)
 
-config_path = os.path.join(os.getcwd(), 'test.data', 'secrets')
-vault_path = os.path.join(os.getcwd(), 'test.data', 'vaults')
 
-# GLOBAL config object
-vault_config = {
-    'config_path': config_path,
-    'vault_path': vault_path,
-    'vault_name': None,
-    'account_id': None,
-    'password': None,
-    'cabinet': None,
-}
-
-
-def open_vault(username, password, vault_name, vault_path=None):
+class CabinetWrapper:
     """
-    Open the vault identified by the vault_name, vault_path.
+    A wrapper to easely use the cabinet library.
 
-    Params:
-    :param username:
-    :ptype: String
-    :param password:
-    :ptype: String
-    :param vault_name: The name of the vault
-    :ptype: String
-    :param vault_path: The location of the vault.
-    :ptype: String
-
-    TODO: Implement username/password/vault validation and opening
+    TODO: In the future we should try moving this all to the library.
     """
 
-    global vault_config
-    config_path = vault_config.get('config_path')
-    if vault_path is None:
-        vault_path = vault_config.get('vault_path')
+    def __init__(self):
+        current_path = os.getcwd()
+        join = os.path.join
+        self.config_path = join(current_path, 'test.data', 'secrets')
+        self.default_vault_path = join(current_path, 'test.data', 'vaults')
+        self.load_credentials()
 
-    cab = Cabinet(username, password, config_path)
-    cab.open(vault_name, vault_path)
-    vault_config['cabinet'] = cab
+    def load_credentials(self):
+        """
+        TODO: Implement reading credentials from stdin.
+        TODO: Implement reading credentials from config file.
+        """
+        self.account_id = 'my-name@my-company.com'
+        self.password = 'asdfasdf'
+        self.vault_name = 'test-vault'
+        return self.open_vault(self.account_id, self.password, self.vault_name)
 
-    return True  # TODO: Add open check. For this, the vault should verify keys
+    def open_vault(self, account_id, password, vault_name, vault_path=None):
+        """
+        Open the vault identified by the vault_name, vault_path.
+
+        Params:
+        :param account_id:
+        :type: String
+        :param password:
+        :type: String
+        :param vault_name: The name of the vault
+        :type: String
+        :param vault_path: The location of the vault.
+        :type: String
+
+        TODO: Implement account_id/password/vault validation and opening
+        """
+
+        if vault_path is None:
+            vault_path = self.default_vault_path
+
+        self.cab = Cabinet(account_id, password, self.config_path)
+        self.cab.open(vault_name, vault_path)
+
+        # TODO: Add open check. For this, the vault should verify keys
+        return True
+
+    def get_all(self):
+        """
+        Get all the items from the vault without the 'content' (i.e: only name
+        and tags).
+
+        :returns: The list of items
+        :type: List of Dictionaries.
+        """
+        return self.cab.get_all()
+
+    def get_item(self, name):
+        """
+        Get an item from the vault.
+
+        :param name: The name of the item to recover.
+        :type: String
+
+        :returns: The item with the specified name.
+        :type: Dictionary
+        """
+        return self.cab.get(name)
+
+    def add_item(self, item):
+        """
+        Add an item to the vault.
+
+        :param item: The item to be added.
+        :type: Dictionary
+        """
+        self.cab.add(item)
 
 
-def get_all():
-    """
-    Get all the items from the vault without the 'content' (i.e: only name and
-    tags).
-
-    :returns: The list of items
-    :ptype: List of Dictionaries.
-    """
-    global vault_config
-    cab = vault_config.get('cabinet')
-    return cab.get_all()
-
-
-def get_item(name):
-    """
-    Get an item from the vault.
-
-    :param name: The name of the item to recover.
-    :ptype: String
-
-    :returns: The item with the specified name.
-    :ptype: Dictionary
-    """
-    global vault_config
-    cab = vault_config.get('cabinet')
-    return cab.get(name)
-
-
-def add_item(item):
-    """
-    Add an item to the vault.
-
-    :param item: The item to be added.
-    :ptype: Dictionary
-    """
-    global vault_config
-    cab = vault_config.get('cabinet')
-    cab.add(item)
-
-
-def tags(value):
+# TODO: Move the types out of this file, to a type folder/file. ###############
+def tags_type(value):
     """
     Parse the value to recover a list of tags.
 
     :param value: The value to parse
-    :ptype: String
+    :type: String
 
     :returns: A list of strings composed by spliting the value by ','.
-    :rtype: List
+    :type: List
     """
     try:
         return value.split(',')
@@ -118,15 +126,15 @@ def tags(value):
                                           comma")
 
 
-def tuple(value):
+def tuple_type(value):
     """
     Parse the value to recover a tuple
 
     :param value: The value to parse
-    :ptype: String
+    :type: String
 
     :returns: A tuple of two values composed by spliting the value by ','.
-    :rtype: Tuple
+    :type: Tuple
     """
     try:
         key, value = value.split(',')
@@ -134,11 +142,13 @@ def tuple(value):
     except:
         raise argparse.argumenttypeerror("coordinates must be x,y,z")
 
+###############################################################################
+
 
 class CabinetController(CementBaseController):
     class Meta:
         label = 'base'
-        description = "Cabinet's cli client for managing valuts."
+        description = "Cabinet's cli client for managing vaults."
         arguments = [
             (['-v', '--version'], dict(action='version', version=BANNER))
         ]
@@ -161,10 +171,10 @@ class ItemController(CementBaseController):
              dict(help='Add a tag to the item', action='append')),
             (['--tags'],
              dict(help='Add multiple separated comma tags',
-                  type=tags, action='store')),
+                  type=tags_type, action='store')),
             (['--content'],
              dict(help='Add content to the item',
-                  type=tuple, action='append'))
+                  type=tuple_type, action='append'))
         ]
 
     @expose(help='Get an item from the vault.')
@@ -173,11 +183,9 @@ class ItemController(CementBaseController):
         name = self.app.pargs.name
         if name:
             self.app.log.debug('Looking for item with name "{0}"'.format(name))
-            account_id = 'my-name@my-company.com'
-            password = 'asdfasdf'
-            vault_name = 'test-vault'
-            if open_vault(account_id, password, vault_name):
-                item = get_item(name)
+            cab = CabinetWrapper()
+            if cab.load_credentials():
+                item = cab.get_item(name)
                 if item:
                     print(item)
                 else:
@@ -186,9 +194,6 @@ class ItemController(CementBaseController):
     @expose(help="Add an item to the vault.")
     def add(self):
         """Add an item to the vault"""
-        account_id = 'my-name@my-company.com'
-        password = 'asdfasdf'
-        vault_name = 'test-vault'
         name = self.app.pargs.name
         tags = self.app.pargs.tags
         if not tags:
@@ -200,8 +205,9 @@ class ItemController(CementBaseController):
             content_obj[key] = value
 
         if name:
-            if open_vault(account_id, password, vault_name):
-                add_item({
+            cab = CabinetWrapper()
+            if cab.load_credentials():
+                cab.add_item({
                     'name': name,
                     'tags': tags,
                     'content': content_obj
@@ -224,7 +230,7 @@ class SearchController(CementBaseController):
              dict(help='Filter by tag', action='append')),
             (['--tags'],
              dict(help='Filter by multiple tags',
-                  type=tags, action='store')),
+                  type=tags_type, action='store')),
             (['extra_arguments'],
              dict(action='store', nargs='*')),
         ]
@@ -233,18 +239,17 @@ class SearchController(CementBaseController):
     @expose(help='Get all the items in the vault.')
     def default(self):
         """Print all the item names (and tags if apply) to stdout."""
-        account_id = 'my-name@my-company.com'
-        password = 'asdfasdf'
-        vault_name = 'test-vault'
         tags = self.app.pargs.tags
         if not tags:
             tags = [] if not self.app.pargs.tag else self.app.pargs.tag
         tag_tpl = " tagged with {1}" if self.app.pargs.show_tags else ''
-        if open_vault(account_id, password, vault_name):
-            all = get_all().values()
-            all = [item for item in all if set(tags).issubset(item['tags'])]
+        cab = CabinetWrapper()
+        if cab.load_credentials():
+            item_list = cab.get_all().values()
+            item_list = [item for item in item_list
+                         if set(tags).issubset(item['tags'])]
             print("The following items was found:")
-            for item in all:
+            for item in item_list:
                 print(('\t-"{0}"' + tag_tpl).format(item['name'],
                                                     item['tags']))
 
