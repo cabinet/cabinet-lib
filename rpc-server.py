@@ -33,7 +33,13 @@ vault_config = {
 
 def check_auth(client_token):
     global vault_config
-    return client_token == vault_config.get('app_token')
+    token = vault_config.get('app_token')
+    if token is None:
+        # when we set the token to None we meant to say that no token is
+        # required to do requests
+        return True
+
+    return client_token == token
 
 
 @jsonrpc.method('App.open_vault(username=str, password=str,'
@@ -102,15 +108,20 @@ def get_random_open_port():
     return port
 
 
-def run_rpc_server():
+def run_rpc_server(port, no_token):
     global vault_config
 
-    # Serve the rpc api in a different port each time
-    app_port = get_random_open_port()
+    if port is not None:
+        app_port = port
+    else:
+        app_port = get_random_open_port()
     vault_config['app_port'] = app_port
 
-    # The server responds only to requests with this token
-    app_token = token_urlsafe(32)
+    # The server will respond only to requests with this token
+    # If token is set to None, the server will respond to any request
+    app_token = None
+    if not no_token:
+        app_token = token_urlsafe(32)
     vault_config['app_token'] = app_token
 
     # Print token/port for the calling process to be able to comunicate
@@ -130,4 +141,13 @@ def run_rpc_server():
 
 
 if __name__ == '__main__':
-    run_rpc_server()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Argparse test program')
+    parser.add_argument('-p', '--port', type=int,
+                        help='Use this port instead of a random one')
+    parser.add_argument('-n', '--no-token', action='store_true',
+                        help='Do not require token for requests')
+    args = parser.parse_args()
+
+    run_rpc_server(args.port, args.no_token)
