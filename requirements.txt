@@ -1,5 +1,2 @@
-pynacl  # needs libffi-dev
+pynacl
 argon2_cffi
-Flask-JSONRPC
-requests
-cement
