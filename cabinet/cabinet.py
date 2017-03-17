@@ -56,10 +56,28 @@ class Cabinet:
     def get(self, name):
         return self._vault.get(name)
 
+    def get_by_tags(self, tags=None):
+        """
+        Recover all the items that contains the given tags.
+
+        :param tags: A list of tags
+        :ptype tags: List
+
+        :returns: The list of items filtered by tags.
+        :type: List of Dictionaries
+        """
+        if tags is None:
+            tags = []
+
+        item_list = self.get_all().values()
+        return [item for item in item_list
+                if set(tags).issubset(item['tags'])]
+
     def add(self, item):
         """Add an item.
 
-        @param item: the item is a dict of the form:
+        :param item: the item is a dict of the form:
+        :ptype item: Dictionary
 
         {
           'name': 'the name of this item',
