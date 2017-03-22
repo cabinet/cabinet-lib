@@ -56,6 +56,9 @@ class Cabinet:
     def get(self, name):
         return self._vault.get(name)
 
+    def get_tags(self):
+        return self._vault.get_tags()
+
     def get_by_tags(self, tags=None):
         """
         Recover all the items that contains the given tags.

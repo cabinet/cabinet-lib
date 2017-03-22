@@ -11,7 +11,22 @@ from cabinet.utils import CryptoHelper, mkdir_p
 
 class Vault(object):
     """
-    Safe data vault representation
+    Safe data vault representation.
+
+    An item has this structure:
+
+    example_item = {
+        'name': 'the name of this item',
+        'tags': ['test', 'something', 'blah'],
+        'content': content_of_any_kind,
+    }
+
+    Each item is stored in 2 parts/files: data and metadata.
+    The data file contains the 'content'.
+
+    The metadata file contains the 'name', 'tags', and 'hashname'.
+    The 'hashname' stored on the metadata file is the name of the file on which
+    is stored its corresponding 'data'.
     """
 
     def __init__(self, path):
@@ -65,6 +80,9 @@ class Vault(object):
 
         return metadata
 
+    def get_tags(self):
+        return list(self._tags.keys())
+
     def get_all(self):
         all_items = copy.deepcopy(self._names)
 
@@ -73,6 +91,15 @@ class Vault(object):
             del all_items[k]['hashname']
 
         return all_items
+
+    def remove(self, name):
+        # TODO:
+        # remove from names
+        # remove from tags
+        # remove metadata file
+        # remove data file
+        # add test for this
+        pass
 
     def _load_metadata(self):
         metadata_path = os.path.join(self._base_path, 'metadata')
