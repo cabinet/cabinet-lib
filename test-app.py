@@ -45,11 +45,13 @@ def main():
     cab.add(item)
 
     print('-'*10)
+    print("Result for cabinet.get_all():")
     import pprint
     pprint.pprint(cab.get_all())
 
     print('-'*10)
     name = 'test-item #42'
+    print("Result for cabinet.get(name):")
     print(name)
     pprint.pprint(cab.get(name))
 
