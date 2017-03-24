@@ -122,3 +122,31 @@ class Cabinet:
             'content': content,
         }
         self._vault.add(item)
+
+    def update(self, name, content, tags=None):
+        """Update an existing item on the Vault.
+
+        :param name: the name of the item
+        :type name: str
+
+        :param content: the content of the item
+        :type content: any
+
+        :param tags: the tags for the content
+        :type tags: list
+        """
+        if tags is None:
+            tags = []
+
+        item = {
+            'name': name,
+            'tags': tags,
+            'content': content,
+        }
+        self._vault.update(name, item)
+
+    def rename(self, name, new_name):
+        self._vault.rename(name, new_name)
+
+    def remove(self, name):
+        pass
