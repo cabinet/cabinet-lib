@@ -41,8 +41,13 @@ class Vault(object):
         mkdir_p(data_path)
 
     def add(self, item):
+        """Add a new item to the vault.
+
+        :param item: the item to add
+        :type item: dict
+        """
         if self.get(item['name']) is not None:
-            raise Exception("An item gith that name already exists")
+            raise Exception("An item with that name already exists")
 
         metadata = copy.deepcopy(item)
 
@@ -69,16 +74,23 @@ class Vault(object):
         self._file_write(fname, content)
 
     def update(self, name, new_item):
-        item = self.get(name, True)
+        """Update the item named as `name` with the item `new_item`.
+
+        :param name: the name of the item to update
+        :type name: str
+        :param new_item: the new item's contents
+        :type new_item: dict
+        """
+        item = self.get(name)
 
         if item is None:
-            return
+            raise Exception("The specified item does not exist.")
 
         self._tags[name] = new_item['tags']
         new_item['hashname'] = item['hashname']
 
         content = new_item['content']
-        del new_item['content']
+        del new_item['content']  # no content on the metadata
         self._names[name] = new_item
 
         metadata_file, content_file = self._get_item_paths(name)
@@ -90,14 +102,19 @@ class Vault(object):
         metadata_file = os.path.join(self._base_path, 'metadata',
                                      self._metadata_paths[name])
 
-        # import ipdb
-        # ipdb.set_trace()
         content_file = os.path.join(self._base_path, 'data',
                                     self._names[name]['hashname'])
 
         return metadata_file, content_file
 
     def rename(self, name, new_name):
+        """Rename the item named `name` as `new_name`.
+
+        :param name: the name of the item to rename
+        :type name: str
+        :param new_name: the new item's name
+        :type new_name: str
+        """
         item = self.get(name, True)
 
         if item is None:
@@ -111,6 +128,14 @@ class Vault(object):
         del self._names[name]
 
     def get(self, name, full=False):
+        """Return the item with the given `name`.
+
+        :param name: the name of the item to return
+        :type name: str
+        :param full: whether we want to include all the available information
+                     on the item or not. Right now it only adds the `hashname`.
+        :type full: bool
+        """
         metadata = copy.deepcopy(self._names.get(name))
 
         if metadata is None:
@@ -130,6 +155,7 @@ class Vault(object):
         return metadata
 
     def get_tags(self):
+        """Return the list of all available tags."""
         return list(self._tags.keys())
 
     def get_all(self):
