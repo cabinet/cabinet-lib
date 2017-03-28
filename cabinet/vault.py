@@ -33,6 +33,7 @@ class Vault(object):
         self._base_path = path
         self._tags = {}
         self._names = {}
+        self._metadata_paths = {}
 
         metadata_path = os.path.join(self._base_path, 'metadata')
         data_path = os.path.join(self._base_path, 'data')
@@ -40,6 +41,14 @@ class Vault(object):
         mkdir_p(data_path)
 
     def add(self, item):
+        """Add a new item to the vault.
+
+        :param item: the item to add
+        :type item: dict
+        """
+        if self.get(item['name']) is not None:
+            raise Exception("An item with that name already exists")
+
         metadata = copy.deepcopy(item)
 
         name = metadata['name']
@@ -49,9 +58,11 @@ class Vault(object):
         self._names[name] = metadata
         self._tags[name] = metadata['tags']
 
+        # get random name for the contents file
         fname = uuid4().hex
         metadata['hashname'] = fname
 
+        # get random name for the metadata file
         fname = uuid4().hex
         metadata_path = os.path.join(self._base_path, 'metadata')
         fname = os.path.join(metadata_path, fname)
@@ -62,7 +73,69 @@ class Vault(object):
         fname = os.path.join(data_path, fname)
         self._file_write(fname, content)
 
-    def get(self, name):
+    def update(self, name, new_item):
+        """Update the item named as `name` with the item `new_item`.
+
+        :param name: the name of the item to update
+        :type name: str
+        :param new_item: the new item's contents
+        :type new_item: dict
+        """
+        item = self.get(name)
+
+        if item is None:
+            raise Exception("The specified item does not exist.")
+
+        self._tags[name] = new_item['tags']
+        new_item['hashname'] = item['hashname']
+
+        content = new_item['content']
+        del new_item['content']  # no content on the metadata
+        self._names[name] = new_item
+
+        metadata_file, content_file = self._get_item_paths(name)
+
+        self._file_write(metadata_file, new_item)
+        self._file_write(content_file, content)
+
+    def _get_item_paths(self, name):
+        metadata_file = os.path.join(self._base_path, 'metadata',
+                                     self._metadata_paths[name])
+
+        content_file = os.path.join(self._base_path, 'data',
+                                    self._names[name]['hashname'])
+
+        return metadata_file, content_file
+
+    def rename(self, name, new_name):
+        """Rename the item named `name` as `new_name`.
+
+        :param name: the name of the item to rename
+        :type name: str
+        :param new_name: the new item's name
+        :type new_name: str
+        """
+        item = self.get(name, True)
+
+        if item is None:
+            raise Exception("The specified item does not exist.")
+
+        item['name'] = new_name
+        self._names[new_name] = item
+
+        metadata_file, _ = self._get_item_paths(name)
+        self._file_write(metadata_file, item)
+        del self._names[name]
+
+    def get(self, name, full=False):
+        """Return the item with the given `name`.
+
+        :param name: the name of the item to return
+        :type name: str
+        :param full: whether we want to include all the available information
+                     on the item or not. Right now it only adds the `hashname`.
+        :type full: bool
+        """
         metadata = copy.deepcopy(self._names.get(name))
 
         if metadata is None:
@@ -74,13 +147,15 @@ class Vault(object):
         content = self._file_read(fname)
         metadata['content'] = content
 
-        # hashname is not returned to the user, its goal is just to find
-        # information on the disk
-        del metadata['hashname']
+        if not full:
+            # hashname is not returned to the user, its goal is just to find
+            # information on the disk
+            del metadata['hashname']
 
         return metadata
 
     def get_tags(self):
+        """Return the list of all available tags."""
         return list(self._tags.keys())
 
     def get_all(self):
@@ -105,11 +180,14 @@ class Vault(object):
         metadata_path = os.path.join(self._base_path, 'metadata')
         tags = {}
         names = {}
+        metadata_paths = {}
 
         for fname in os.listdir(metadata_path):
             file_path = os.path.join(metadata_path, fname)
             obj = self._file_read(file_path)
-            names[obj['name']] = obj
+            name = obj['name']
+            names[name] = obj
+            metadata_paths[name] = fname
 
             for tag in obj['tags']:
                 if tags.get(tag):
@@ -119,6 +197,7 @@ class Vault(object):
 
         self._tags = tags
         self._names = names
+        self._metadata_paths = metadata_paths
 
     def open(self, key):
         self._key = key
