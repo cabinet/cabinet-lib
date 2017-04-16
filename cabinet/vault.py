@@ -81,7 +81,7 @@ class Vault(object):
         :param new_item: the new item's contents
         :type new_item: dict
         """
-        item = self.get(name)
+        item = self.get(name, full=True)
 
         if item is None:
             raise Exception("The specified item does not exist.")
