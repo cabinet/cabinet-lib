@@ -149,4 +149,4 @@ class Cabinet:
         self._vault.rename(name, new_name)
 
     def remove(self, name):
-        pass
+        self._vault.remove(name)
