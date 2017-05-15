@@ -168,13 +168,22 @@ class Vault(object):
         return all_items
 
     def remove(self, name):
+        item = self.get(name, full=True)
+        if item is None:
+            raise Exception("The specified item does not exist.")
+
+        metadata_file, content_file = self._get_item_paths(name)
+        os.remove(metadata_file)
+        os.remove(content_file)
+
+        del self._metadata_paths[name]
+        del self._names[name]
+        if name in self._tags:
+            del self._tags[name]
+
         # TODO:
-        # remove from names
-        # remove from tags
-        # remove metadata file
-        # remove data file
         # add test for this
-        pass
+        # add recovery path if any step fail
 
     def _load_metadata(self):
         metadata_path = os.path.join(self._base_path, 'metadata')
